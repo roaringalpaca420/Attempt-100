@@ -6,6 +6,7 @@ const logsToggleButton = document.getElementById("logsToggleButton");
 const logsPanel = document.getElementById("logsPanel");
 const logsOutput = document.getElementById("logsOutput");
 const clearLogsButton = document.getElementById("clearLogsButton");
+const copyLogsButton = document.getElementById("copyLogsButton");
 const video = document.getElementById("video");
 
 let faceLandmarker = null;
@@ -55,15 +56,30 @@ function getErrorMessage(error) {
   }
 }
 
+async function copyLogsToClipboard() {
+  const text = logsOutput ? logsOutput.textContent : "";
+  if (!text || !text.trim()) {
+    setStatus("No logs to copy yet.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("Logs copied to clipboard.");
+  } catch {
+    setStatus("Clipboard blocked. Copy logs manually.");
+  }
+}
+
 async function loadLibraries() {
   if (libsLoaded) {
     return;
   }
   setStatus("Loading app libraries...");
   const [threeModule, orbitModule, gltfModule, visionModule] = await Promise.all([
-    import("https://cdn.skypack.dev/three@0.150.1"),
-    import("https://cdn.skypack.dev/three@0.150.1/examples/jsm/controls/OrbitControls.js"),
-    import("https://cdn.skypack.dev/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"),
+    import("https://esm.sh/three@0.150.1"),
+    import("https://esm.sh/three@0.150.1/examples/jsm/controls/OrbitControls.js"),
+    import("https://esm.sh/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"),
     import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.1.0-alpha-16")
   ]);
 
@@ -303,6 +319,7 @@ async function run() {
     log("Startup error", {
       message: error?.message ?? String(error)
     });
+    await copyLogsToClipboard();
     startButton.disabled = false;
   }
 }
@@ -317,6 +334,12 @@ if (logsToggleButton && logsPanel) {
 if (clearLogsButton && logsOutput) {
   clearLogsButton.addEventListener("click", () => {
     logsOutput.textContent = "";
+  });
+}
+
+if (copyLogsButton) {
+  copyLogsButton.addEventListener("click", async () => {
+    await copyLogsToClipboard();
   });
 }
 

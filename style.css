@@ -83,6 +83,11 @@ button:hover {
   font-size: 13px;
 }
 
+.logs-actions {
+  display: flex;
+  gap: 6px;
+}
+
 #logsOutput {
   margin: 0;
   padding: 8px;
