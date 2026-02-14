@@ -152,13 +152,18 @@ class Avatar {
   }
 
   updateBlendshapes(blendshapesMap) {
+    const lerpAmount = 0.7; // Smoothing factor (0.0 to 1.0)
+
     for (const mesh of this.morphTargetMeshes) {
-      for (const [name, value] of blendshapesMap) {
+      for (const [name, targetValue] of blendshapesMap) {
         if (!Object.prototype.hasOwnProperty.call(mesh.morphTargetDictionary, name)) {
           continue;
         }
         const idx = mesh.morphTargetDictionary[name];
-        mesh.morphTargetInfluences[idx] = value;
+        
+        // Smooth transition
+        const currentValue = mesh.morphTargetInfluences[idx];
+        mesh.morphTargetInfluences[idx] = currentValue + (targetValue - currentValue) * lerpAmount;
       }
     }
   }
@@ -237,14 +242,24 @@ function retarget(blendshapes) {
   const categories = blendshapes[0].categories;
   const coefsMap = new Map();
   for (let i = 0; i < categories.length; i += 1) {
-    const blendshape = categories[i];
-    if (blendshape.categoryName === "browOuterUpLeft" || blendshape.categoryName === "browOuterUpRight") {
-      blendshape.score *= 1.2;
+    let value = categories[i].score;
+    const name = categories[i].categoryName;
+
+    // Apply boosts
+    if (name.includes("brow")) {
+      value *= 1.2;
     }
-    if (blendshape.categoryName === "eyeBlinkLeft" || blendshape.categoryName === "eyeBlinkRight") {
-      blendshape.score *= 1.2;
+    if (name.includes("eyeBlink")) {
+      value *= 1.2;
     }
-    coefsMap.set(blendshape.categoryName, blendshape.score);
+    if (name.includes("mouth") || name === "jawOpen") {
+      value *= 1.6; // Stronger boost for mouth expressions
+    }
+
+    // Clamp
+    value = Math.min(1.0, Math.max(0, value));
+
+    coefsMap.set(name, value);
   }
   return coefsMap;
 }
