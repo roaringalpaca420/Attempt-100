@@ -1,11 +1,3 @@
-import * as THREE from "https://cdn.skypack.dev/three@0.150.1";
-import { OrbitControls } from "https://cdn.skypack.dev/three@0.150.1/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader } from "https://cdn.skypack.dev/three@0.150.1/examples/jsm/loaders/GLTFLoader.js";
-import {
-  FilesetResolver,
-  FaceLandmarker
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.1.0-alpha-16";
-
 const MODEL_URL = "../Pug.glb";
 
 const statusEl = document.getElementById("status");
@@ -22,6 +14,12 @@ let scene = null;
 let camera = null;
 let renderer = null;
 let controls = null;
+let THREE = null;
+let OrbitControls = null;
+let GLTFLoader = null;
+let FilesetResolver = null;
+let FaceLandmarker = null;
+let libsLoaded = false;
 
 function log(message, ...details) {
   const time = new Date().toLocaleTimeString();
@@ -34,6 +32,27 @@ function log(message, ...details) {
 function setStatus(text) {
   statusEl.textContent = text;
   log(`STATUS: ${text}`);
+}
+
+async function loadLibraries() {
+  if (libsLoaded) {
+    return;
+  }
+  setStatus("Loading app libraries...");
+  const [threeModule, orbitModule, gltfModule, visionModule] = await Promise.all([
+    import("https://cdn.skypack.dev/three@0.150.1"),
+    import("https://cdn.skypack.dev/three@0.150.1/examples/jsm/controls/OrbitControls.js"),
+    import("https://cdn.skypack.dev/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"),
+    import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.1.0-alpha-16")
+  ]);
+
+  THREE = threeModule;
+  OrbitControls = orbitModule.OrbitControls;
+  GLTFLoader = gltfModule.GLTFLoader;
+  FilesetResolver = visionModule.FilesetResolver;
+  FaceLandmarker = visionModule.FaceLandmarker;
+  libsLoaded = true;
+  setStatus("Libraries loaded.");
 }
 
 function getViewportSizeAtDepth(cam, depth) {
@@ -99,7 +118,7 @@ class Avatar {
   updateBlendshapes(blendshapesMap) {
     for (const mesh of this.morphTargetMeshes) {
       for (const [name, value] of blendshapesMap) {
-        if (!Object.hasOwn(mesh.morphTargetDictionary, name)) {
+        if (!Object.prototype.hasOwnProperty.call(mesh.morphTargetDictionary, name)) {
           continue;
         }
         const idx = mesh.morphTargetDictionary[name];
@@ -203,7 +222,11 @@ function detectFaceLandmarks(time) {
 
 function onVideoFrame(time) {
   detectFaceLandmarks(time);
-  video.requestVideoFrameCallback(onVideoFrame);
+  if (typeof video.requestVideoFrameCallback === "function") {
+    video.requestVideoFrameCallback(onVideoFrame);
+  } else {
+    requestAnimationFrame(() => onVideoFrame(performance.now()));
+  }
 }
 
 async function startCamera() {
@@ -218,7 +241,11 @@ async function startCamera() {
   });
   video.srcObject = stream;
   await video.play();
-  video.requestVideoFrameCallback(onVideoFrame);
+  if (typeof video.requestVideoFrameCallback === "function") {
+    video.requestVideoFrameCallback(onVideoFrame);
+  } else {
+    requestAnimationFrame(() => onVideoFrame(performance.now()));
+  }
   setStatus("Webcam started.");
 }
 
@@ -243,6 +270,7 @@ async function loadFaceLandmarker() {
 
 async function run() {
   try {
+    await loadLibraries();
     buildScene();
     avatar = new Avatar(MODEL_URL, scene);
     await avatar.loadModel();
@@ -254,6 +282,7 @@ async function run() {
     log("Startup error", {
       message: error?.message ?? String(error)
     });
+    startButton.disabled = false;
   }
 }
 
