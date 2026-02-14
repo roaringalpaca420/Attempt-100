@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "../Pug.glb";
+const PRIMARY_MODEL_URL = "./raccoon parted face.glb";
 const FALLBACK_MODEL_URL = "https://assets.codepen.io/9177687/raccoon_head.glb";
 
 const statusEl = document.getElementById("status");
