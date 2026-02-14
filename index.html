@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pug Face Avatar</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="top-bar">
+      <button id="startButton" type="button">Start Camera</button>
+      <button id="logsToggleButton" type="button">Show Logs</button>
+    </div>
+
+    <div id="status" class="status">Waiting to start camera...</div>
+    <video id="video" autoplay playsinline muted></video>
+
+    <div id="logsPanel" class="logs-panel hidden">
+      <div class="logs-header">
+        <span>App Logs</span>
+        <button id="clearLogsButton" type="button">Clear</button>
+      </div>
+      <pre id="logsOutput"></pre>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
