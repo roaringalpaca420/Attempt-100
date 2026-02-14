@@ -20,6 +20,7 @@ let GLTFLoader = null;
 let FilesetResolver = null;
 let FaceLandmarker = null;
 let libsLoaded = false;
+let frameCount = 0;
 
 function log(message, ...details) {
   const time = new Date().toLocaleTimeString();
@@ -152,7 +153,7 @@ class Avatar {
   }
 
   updateBlendshapes(blendshapesMap) {
-    const lerpAmount = 0.7; // Smoothing factor (0.0 to 1.0)
+    const lerpAmount = 0.5; // Smoother transition to feel more "weighted" and sticky
 
     for (const mesh of this.morphTargetMeshes) {
       for (const [name, targetValue] of blendshapesMap) {
@@ -241,6 +242,11 @@ function buildScene() {
 function retarget(blendshapes) {
   const categories = blendshapes[0].categories;
   const coefsMap = new Map();
+  
+  // Track some key mouth shapes for logging
+  const debugValues = {};
+  const debugKeys = ["jawOpen", "mouthSmileLeft", "mouthSmileRight", "mouthPucker"];
+
   for (let i = 0; i < categories.length; i += 1) {
     let value = categories[i].score;
     const name = categories[i].categoryName;
@@ -253,14 +259,25 @@ function retarget(blendshapes) {
       value *= 1.2;
     }
     if (name.includes("mouth") || name === "jawOpen") {
-      value *= 1.6; // Stronger boost for mouth expressions
+      value *= 3.0; // Aggressive boost for "stickiness"
     }
 
     // Clamp
     value = Math.min(1.0, Math.max(0, value));
 
     coefsMap.set(name, value);
+
+    if (debugKeys.includes(name)) {
+      debugValues[name] = value.toFixed(2);
+    }
   }
+
+  // Log every ~60 frames (approx 2 seconds at 30fps)
+  frameCount++;
+  if (frameCount % 60 === 0) {
+    log("Tracking Debug", debugValues);
+  }
+
   return coefsMap;
 }
 
