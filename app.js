@@ -1,6 +1,3 @@
-const PRIMARY_MODEL_URL = "./raccoon parted face.glb";
-const FALLBACK_MODEL_URL = "https://assets.codepen.io/9177687/raccoon_head.glb";
-
 const statusEl = document.getElementById("status");
 const startButton = document.getElementById("startButton");
 const logsToggleButton = document.getElementById("logsToggleButton");
@@ -9,6 +6,7 @@ const logsOutput = document.getElementById("logsOutput");
 const clearLogsButton = document.getElementById("clearLogsButton");
 const copyLogsButton = document.getElementById("copyLogsButton");
 const video = document.getElementById("video");
+const modelSelect = document.getElementById("modelSelect");
 
 let faceLandmarker = null;
 let avatar = null;
@@ -173,6 +171,15 @@ class Avatar {
     this.gltf.scene.matrixAutoUpdate = false;
     this.gltf.scene.matrix.copy(matrix);
   }
+  
+  dispose() {
+    if (this.gltf) {
+        this.scene.remove(this.gltf.scene);
+        this.gltf = null;
+        this.morphTargetMeshes = [];
+        this.root = null;
+    }
+  }
 }
 
 function buildScene() {
@@ -306,23 +313,31 @@ async function loadFaceLandmarker() {
   setStatus("MediaPipe ready.");
 }
 
+async function switchAvatar(url) {
+  if (avatar) {
+    avatar.dispose();
+  }
+  setStatus(`Loading model: ${url}...`);
+  avatar = new Avatar(url, scene);
+  try {
+    await avatar.loadModel();
+    setStatus("Model switched successfully.");
+  } catch (error) {
+    setStatus(`Failed to switch model: ${getErrorMessage(error)}`);
+    // Restore default if switch fails? Or just leave it broken. 
+    // For now, leave it and let user try another.
+  }
+}
+
 async function run() {
   try {
     await loadLibraries();
     buildScene();
-    avatar = new Avatar(PRIMARY_MODEL_URL, scene);
-    try {
-      await avatar.loadModel();
-      log("Using primary model", { url: PRIMARY_MODEL_URL });
-    } catch (primaryError) {
-      log("Primary model failed, loading fallback raccoon", {
-        primaryModel: PRIMARY_MODEL_URL,
-        reason: getErrorMessage(primaryError)
-      });
-      avatar = new Avatar(FALLBACK_MODEL_URL, scene);
-      await avatar.loadModel();
-      log("Using fallback model", { url: FALLBACK_MODEL_URL });
-    }
+    
+    // Initial model load
+    const selectedUrl = modelSelect.value;
+    await switchAvatar(selectedUrl);
+    
     await loadFaceLandmarker();
     await startCamera();
     setStatus("Tracking active.");
@@ -362,6 +377,15 @@ if (startButton) {
   });
 }
 
+if (modelSelect) {
+  modelSelect.addEventListener("change", async (e) => {
+    // If scene is active, switch. Otherwise just wait for start.
+    if (scene && libsLoaded) {
+      await switchAvatar(e.target.value);
+    }
+  });
+}
+
 window.addEventListener("error", (event) => {
   log("Window error", { message: event.message, file: event.filename });
 });
@@ -370,4 +394,4 @@ window.addEventListener("unhandledrejection", (event) => {
   log("Unhandled promise rejection", { reason: getErrorMessage(event.reason) });
 });
 
-log("App loaded. Click Start Camera to begin.");
+log("App loaded. Select model and click Start Camera.");
