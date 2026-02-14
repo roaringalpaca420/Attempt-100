@@ -24,14 +24,35 @@ let libsLoaded = false;
 function log(message, ...details) {
   const time = new Date().toLocaleTimeString();
   const line = `[${time}] ${message} ${details.map((x) => JSON.stringify(x)).join(" ")}`;
-  logsOutput.textContent += `${line}\n`;
-  logsOutput.scrollTop = logsOutput.scrollHeight;
+  if (logsOutput) {
+    logsOutput.textContent += `${line}\n`;
+    logsOutput.scrollTop = logsOutput.scrollHeight;
+  }
   console.log(message, ...details);
 }
 
 function setStatus(text) {
-  statusEl.textContent = text;
+  if (statusEl) {
+    statusEl.textContent = text;
+  }
   log(`STATUS: ${text}`);
+}
+
+function getErrorMessage(error) {
+  if (!error) {
+    return "Unknown error";
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error.message) {
+    return error.message;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 }
 
 async function loadLibraries() {
@@ -286,18 +307,32 @@ async function run() {
   }
 }
 
-logsToggleButton.addEventListener("click", () => {
-  logsPanel.classList.toggle("hidden");
-  logsToggleButton.textContent = logsPanel.classList.contains("hidden") ? "Show Logs" : "Hide Logs";
+if (logsToggleButton && logsPanel) {
+  logsToggleButton.addEventListener("click", () => {
+    logsPanel.classList.toggle("hidden");
+    logsToggleButton.textContent = logsPanel.classList.contains("hidden") ? "Show Logs" : "Hide Logs";
+  });
+}
+
+if (clearLogsButton && logsOutput) {
+  clearLogsButton.addEventListener("click", () => {
+    logsOutput.textContent = "";
+  });
+}
+
+if (startButton) {
+  startButton.addEventListener("click", async () => {
+    startButton.disabled = true;
+    await run();
+  });
+}
+
+window.addEventListener("error", (event) => {
+  log("Window error", { message: event.message, file: event.filename });
 });
 
-clearLogsButton.addEventListener("click", () => {
-  logsOutput.textContent = "";
-});
-
-startButton.addEventListener("click", async () => {
-  startButton.disabled = true;
-  await run();
+window.addEventListener("unhandledrejection", (event) => {
+  log("Unhandled promise rejection", { reason: getErrorMessage(event.reason) });
 });
 
 log("App loaded. Click Start Camera to begin.");
