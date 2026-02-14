@@ -1,4 +1,5 @@
-const MODEL_URL = "../Pug.glb";
+const PRIMARY_MODEL_URL = "../Pug.glb";
+const FALLBACK_MODEL_URL = "https://assets.codepen.io/9177687/raccoon_head.glb";
 
 const statusEl = document.getElementById("status");
 const startButton = document.getElementById("startButton");
@@ -77,9 +78,9 @@ async function loadLibraries() {
   }
   setStatus("Loading app libraries...");
   const [threeModule, orbitModule, gltfModule, visionModule] = await Promise.all([
-    import("https://esm.sh/three@0.150.1"),
-    import("https://esm.sh/three@0.150.1/examples/jsm/controls/OrbitControls.js"),
-    import("https://esm.sh/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"),
+    import("three"),
+    import("https://unpkg.com/three@0.150.1/examples/jsm/controls/OrbitControls.js"),
+    import("https://unpkg.com/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"),
     import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.1.0-alpha-16")
   ]);
 
@@ -309,8 +310,19 @@ async function run() {
   try {
     await loadLibraries();
     buildScene();
-    avatar = new Avatar(MODEL_URL, scene);
-    await avatar.loadModel();
+    avatar = new Avatar(PRIMARY_MODEL_URL, scene);
+    try {
+      await avatar.loadModel();
+      log("Using primary model", { url: PRIMARY_MODEL_URL });
+    } catch (primaryError) {
+      log("Primary model failed, loading fallback raccoon", {
+        primaryModel: PRIMARY_MODEL_URL,
+        reason: getErrorMessage(primaryError)
+      });
+      avatar = new Avatar(FALLBACK_MODEL_URL, scene);
+      await avatar.loadModel();
+      log("Using fallback model", { url: FALLBACK_MODEL_URL });
+    }
     await loadFaceLandmarker();
     await startCamera();
     setStatus("Tracking active.");
