@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "./Avocadotar.glb";
+const PRIMARY_MODEL_URL = "./Avocadotar 4 .glb";
 const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
@@ -79,18 +79,33 @@ async function loadLibraries() {
     return;
   }
   setStatus("Loading app libraries...");
-  const [threeModule, orbitModule, gltfModule, visionModule] = await Promise.all([
+  const [threeModule, orbitModule, gltfModule, dracoModule, visionModule] = await Promise.all([
     import("three"),
     import("https://unpkg.com/three@0.150.1/examples/jsm/controls/OrbitControls.js"),
     import("https://unpkg.com/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"),
+    import("https://unpkg.com/three@0.150.1/examples/jsm/loaders/DRACOLoader.js"),
     import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.1.0-alpha-16")
   ]);
 
   THREE = threeModule;
   OrbitControls = orbitModule.OrbitControls;
   GLTFLoader = gltfModule.GLTFLoader;
+  const DRACOLoader = dracoModule.DRACOLoader;
   FilesetResolver = visionModule.FilesetResolver;
   FaceLandmarker = visionModule.FaceLandmarker;
+  
+  // Set up the loader with Draco support
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+  dracoLoader.setDecoderConfig({ type: 'js' });
+  
+  // Create a reusable GLTFLoader instance with Draco attached
+  const sharedGLTFLoader = new GLTFLoader();
+  sharedGLTFLoader.setDRACOLoader(dracoLoader);
+  
+  // Store it globally for the Avatar class to access
+  window.sharedGLTFLoader = sharedGLTFLoader;
+
   libsLoaded = true;
   setStatus("Libraries loaded.");
 }
@@ -112,7 +127,10 @@ class Avatar {
   constructor(url, targetScene) {
     this.url = url;
     this.scene = targetScene;
-    this.loader = new GLTFLoader();
+    
+    // Use shared loader if available, otherwise create new (fallback)
+    this.loader = window.sharedGLTFLoader || new GLTFLoader();
+    
     this.gltf = null;
     this.root = null;
     this.morphTargetMeshes = [];
