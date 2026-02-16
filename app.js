@@ -100,11 +100,11 @@ async function loadLibraries() {
   dracoLoader.setDecoderConfig({ type: 'js' });
   
   // Create a reusable GLTFLoader instance with Draco attached
-  const sharedGLTFLoader = new GLTFLoader();
-  sharedGLTFLoader.setDRACOLoader(dracoLoader);
+  const sharedLoader = new GLTFLoader();
+  sharedLoader.setDRACOLoader(dracoLoader);
   
   // Store it globally for the Avatar class to access
-  window.sharedGLTFLoader = sharedGLTFLoader;
+  window.sharedLoader = sharedLoader;
 
   libsLoaded = true;
   setStatus("Libraries loaded.");
@@ -128,20 +128,13 @@ class Avatar {
     this.url = url;
     this.scene = targetScene;
     
-    // Create new loader but configure it immediately with Draco if available
-    this.loader = new GLTFLoader();
-    
-    if (window.dracoLoaderInstance) {
-        this.loader.setDRACOLoader(window.dracoLoaderInstance);
+    // Use the pre-configured shared loader
+    if (window.sharedLoader) {
+        this.loader = window.sharedLoader;
     } else {
-        // Fallback: create a new one just in case (should happen in loadLibraries though)
-        // This part requires access to DRACOLoader class which is globally exposed
-        if (window.DRACOLoader) {
-            const dracoLoader = new window.DRACOLoader();
-            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-            dracoLoader.setDecoderConfig({ type: 'js' });
-            this.loader.setDRACOLoader(dracoLoader);
-        }
+        // Fallback (should not happen if libraries loaded)
+        this.loader = new GLTFLoader();
+        log("WARNING: Using fallback unconfigured loader");
     }
     
     this.gltf = null;
@@ -152,25 +145,37 @@ class Avatar {
   loadModel() {
     return new Promise((resolve, reject) => {
       log("Loading model", { url: this.url });
+      
+      // Explicitly check for DracoLoader configuration
+      if (!this.loader.dracoLoader) {
+        log("WARNING: GLTFLoader has no DRACOLoader configured.");
+      } else {
+        log("GLTFLoader is configured with DRACOLoader.");
+      }
+
       this.loader.load(
         this.url,
         (gltf) => {
-          this.gltf = gltf;
-          this.scene.add(gltf.scene);
-          gltf.scene.traverse((object) => {
-            if (object.isBone && !this.root) {
-              this.root = object;
-            }
-            if (!object.isMesh) {
-              return;
-            }
-            object.frustumCulled = false;
-            if (object.morphTargetDictionary && object.morphTargetInfluences) {
-              this.morphTargetMeshes.push(object);
-            }
-          });
-          log("Model loaded successfully", { morphMeshCount: this.morphTargetMeshes.length });
-          resolve();
+          try {
+            this.gltf = gltf;
+            this.scene.add(gltf.scene);
+            gltf.scene.traverse((object) => {
+              if (object.isBone && !this.root) {
+                this.root = object;
+              }
+              if (!object.isMesh) {
+                return;
+              }
+              object.frustumCulled = false;
+              if (object.morphTargetDictionary && object.morphTargetInfluences) {
+                this.morphTargetMeshes.push(object);
+              }
+            });
+            log("Model loaded successfully", { morphMeshCount: this.morphTargetMeshes.length });
+            resolve();
+          } catch (parseError) {
+            reject(new Error(`Model parsing failed: ${parseError.message}`));
+          }
         },
         (progress) => {
           if (progress.total) {
@@ -180,6 +185,7 @@ class Avatar {
           }
         },
         (error) => {
+          log("GLTFLoader error details", error);
           reject(error);
         }
       );
@@ -250,12 +256,20 @@ function buildScene() {
 
   const inputFrameTexture = new THREE.VideoTexture(video);
   inputFrameTexture.encoding = THREE.sRGBEncoding;
+  
+  // Create a black background plane instead of the video feed
+  // We can just set scene background to black since we want "black void"
+  scene.background = new THREE.Color(0x000000);
+  
+  // Optional: If you still want the video plane for debugging, uncomment below
+  /*
   const inputFramesPlane = createCameraPlaneMesh(
     camera,
     500,
     new THREE.MeshBasicMaterial({ map: inputFrameTexture })
   );
   scene.add(inputFramesPlane);
+  */
 
   window.addEventListener("resize", () => {
     const w = window.innerWidth;
