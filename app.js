@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "./Avocadotar 8 .glb";
+const PRIMARY_MODEL_URL = "./Avocadotar%208%20.glb";
 const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
@@ -227,7 +227,7 @@ class Avatar {
     }
     // Scale down the matrix to make the avatar smaller in the frame
     // Previously scale = 40, now reducing to 20
-    const finalScale = 20; 
+    const finalScale = 5; 
     matrix.scale(new THREE.Vector3(finalScale, finalScale, finalScale));
     
     // Optional: Move it down slightly if it's too high
