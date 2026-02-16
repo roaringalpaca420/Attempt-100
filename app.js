@@ -1,8 +1,9 @@
-const PRIMARY_MODEL_URL = "./Avocadotar 6 .glb";
+const PRIMARY_MODEL_URL = "./Avocadotar 8 .glb";
 const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
 const startButton = document.getElementById("startButton");
+const lockViewButton = document.getElementById("lockViewButton");
 const logsToggleButton = document.getElementById("logsToggleButton");
 const logsPanel = document.getElementById("logsPanel");
 const logsOutput = document.getElementById("logsOutput");
@@ -204,7 +205,7 @@ class Avatar {
   }
 
   updateBlendshapes(blendshapesMap) {
-    const lerpAmount = 0.5; // Smoother transition to feel more "weighted" and sticky
+    const lerpAmount = 0.8; // Faster response (less smoothing) to feel snappy
 
     for (const mesh of this.morphTargetMeshes) {
       for (const [name, targetValue] of blendshapesMap) {
@@ -224,7 +225,14 @@ class Avatar {
     if (!this.gltf) {
       return;
     }
-    matrix.scale(new THREE.Vector3(scale, scale, scale));
+    // Scale down the matrix to make the avatar smaller in the frame
+    // Previously scale = 40, now reducing to 20
+    const finalScale = 20; 
+    matrix.scale(new THREE.Vector3(finalScale, finalScale, finalScale));
+    
+    // Optional: Move it down slightly if it's too high
+    // matrix.setPosition(matrix.position.x, matrix.position.y - 1, matrix.position.z);
+
     this.gltf.scene.matrixAutoUpdate = false;
     this.gltf.scene.matrix.copy(matrix);
   }
@@ -295,6 +303,8 @@ function buildScene() {
 
   function renderLoop() {
     renderer.render(scene, camera);
+    // Explicitly confirm background is black
+    scene.background = new THREE.Color(0x000000); 
     requestAnimationFrame(renderLoop);
   }
   renderLoop();
@@ -314,13 +324,13 @@ function retarget(blendshapes) {
 
     // Apply boosts
     if (name.includes("brow")) {
-      value *= 1.2;
+      value *= 1.5; // Boost brows
     }
     if (name.includes("eyeBlink")) {
-      value *= 1.2;
+      value *= 1.5; // Boost blinks
     }
     if (name.includes("mouth") || name === "jawOpen") {
-      value *= 2.0; // Moderate boost for "stickiness"
+      value *= 5.0; // SUPER Aggressive boost for mouth
     }
 
     // Clamp
@@ -467,6 +477,16 @@ if (startButton) {
   startButton.addEventListener("click", async () => {
     startButton.disabled = true;
     await run();
+  });
+}
+
+if (lockViewButton) {
+  lockViewButton.addEventListener("click", () => {
+    if (controls) {
+      controls.enabled = !controls.enabled;
+      lockViewButton.textContent = controls.enabled ? "Lock View" : "Unlock View";
+      lockViewButton.style.background = controls.enabled ? "#111" : "#5a1a1a"; // Red when locked
+    }
   });
 }
 
