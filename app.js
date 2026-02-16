@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "./Avocadotar 4 .glb";
+const PRIMARY_MODEL_URL = "./Avocadotar 5 .glb";
 const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
@@ -128,13 +128,24 @@ class Avatar {
     this.url = url;
     this.scene = targetScene;
     
-    // Use the pre-configured shared loader
+    // Explicit debug logging
     if (window.sharedLoader) {
+        log("Avatar: Using sharedLoader from window.");
         this.loader = window.sharedLoader;
     } else {
-        // Fallback (should not happen if libraries loaded)
+        log("Avatar: sharedLoader missing! Creating fallback.");
         this.loader = new GLTFLoader();
-        log("WARNING: Using fallback unconfigured loader");
+        
+        // Try to fix it right here
+        if (window.DRACOLoader) {
+             const dracoLoader = new window.DRACOLoader();
+             dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+             dracoLoader.setDecoderConfig({ type: 'js' });
+             this.loader.setDRACOLoader(dracoLoader);
+             log("Avatar: Fallback Draco loader attached.");
+        } else {
+             log("Avatar: window.DRACOLoader is missing entirely.");
+        }
     }
     
     this.gltf = null;
