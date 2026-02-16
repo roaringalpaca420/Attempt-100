@@ -1,5 +1,5 @@
 const PRIMARY_MODEL_URL = "./Avocadotar.glb";
-const FALLBACK_MODEL_URL = "./raccoon parted face png .glb";
+const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
 const startButton = document.getElementById("startButton");
