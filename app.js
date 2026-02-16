@@ -128,8 +128,21 @@ class Avatar {
     this.url = url;
     this.scene = targetScene;
     
-    // Use shared loader if available, otherwise create new (fallback)
-    this.loader = window.sharedGLTFLoader || new GLTFLoader();
+    // Create new loader but configure it immediately with Draco if available
+    this.loader = new GLTFLoader();
+    
+    if (window.dracoLoaderInstance) {
+        this.loader.setDRACOLoader(window.dracoLoaderInstance);
+    } else {
+        // Fallback: create a new one just in case (should happen in loadLibraries though)
+        // This part requires access to DRACOLoader class which is globally exposed
+        if (window.DRACOLoader) {
+            const dracoLoader = new window.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+            dracoLoader.setDecoderConfig({ type: 'js' });
+            this.loader.setDRACOLoader(dracoLoader);
+        }
+    }
     
     this.gltf = null;
     this.root = null;
