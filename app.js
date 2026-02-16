@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "../Avocadotar.glb";
+const PRIMARY_MODEL_URL = "./Avocadotar.glb";
 const FALLBACK_MODEL_URL = "./raccoon parted face png .glb";
 
 const statusEl = document.getElementById("status");
