@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "./Avocadotar 5 .glb";
+const PRIMARY_MODEL_URL = "./Avocadotar 6 .glb";
 const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
@@ -257,6 +257,8 @@ function buildScene() {
   const orbitTarget = camera.position.clone();
   orbitTarget.z -= 5;
   controls.target = orbitTarget;
+  controls.enableZoom = true; // Enable zoom via scroll
+  controls.enablePan = true;  // Enable panning
   controls.update();
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -272,7 +274,7 @@ function buildScene() {
   // We can just set scene background to black since we want "black void"
   scene.background = new THREE.Color(0x000000);
   
-  // Optional: If you still want the video plane for debugging, uncomment below
+  // Ensure the video plane is NOT added
   /*
   const inputFramesPlane = createCameraPlaneMesh(
     camera,
