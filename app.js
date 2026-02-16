@@ -262,7 +262,7 @@ function retarget(blendshapes) {
       value *= 1.2;
     }
     if (name.includes("mouth") || name === "jawOpen") {
-      value *= 3.0; // Aggressive boost for "stickiness"
+      value *= 2.0; // Moderate boost for "stickiness"
     }
 
     // Clamp
