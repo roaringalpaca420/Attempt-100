@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "./Avocadotar%208%20.glb";
+const PRIMARY_MODEL_URL = "./Avocadotar%2000%20.glb";
 const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
@@ -11,6 +11,10 @@ const clearLogsButton = document.getElementById("clearLogsButton");
 const copyLogsButton = document.getElementById("copyLogsButton");
 const video = document.getElementById("video");
 const modelSelect = document.getElementById("modelSelect");
+const scaleSlider = document.getElementById("scaleSlider");
+const scaleValue = document.getElementById("scaleValue");
+const scaleUpBtn = document.getElementById("scaleUp");
+const scaleDownBtn = document.getElementById("scaleDown");
 
 let faceLandmarker = null;
 let avatar = null;
@@ -25,6 +29,8 @@ let FilesetResolver = null;
 let FaceLandmarker = null;
 let libsLoaded = false;
 let frameCount = 0;
+let avatarScale = 5;
+let viewLocked = false;
 
 function log(message, ...details) {
   const time = new Date().toLocaleTimeString();
@@ -221,14 +227,11 @@ class Avatar {
     }
   }
 
-  applyMatrix(matrix, scale = 40) {
+  applyMatrix(matrix) {
     if (!this.gltf) {
       return;
     }
-    // Scale down the matrix to make the avatar smaller in the frame
-    // Previously scale = 40, now reducing to 20
-    const finalScale = 5; 
-    matrix.scale(new THREE.Vector3(finalScale, finalScale, finalScale));
+    matrix.scale(new THREE.Vector3(avatarScale, avatarScale, avatarScale));
     
     // Optional: Move it down slightly if it's too high
     // matrix.setPosition(matrix.position.x, matrix.position.y - 1, matrix.position.z);
@@ -261,13 +264,14 @@ function buildScene() {
   renderer.outputEncoding = THREE.sRGBEncoding;
   document.body.appendChild(renderer.domElement);
 
-  controls = new OrbitControls(camera, renderer.domElement);
-  const orbitTarget = camera.position.clone();
-  orbitTarget.z -= 5;
-  controls.target = orbitTarget;
-  controls.enableZoom = true; // Enable zoom via scroll
-  controls.enablePan = true;  // Enable panning
-  controls.update();
+  renderer.domElement.addEventListener("wheel", (e) => {
+    if (viewLocked) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.5 : 0.5;
+    avatarScale = Math.max(1, Math.min(40, avatarScale + delta));
+    if (scaleSlider) scaleSlider.value = avatarScale;
+    if (scaleValue) scaleValue.textContent = avatarScale.toFixed(1);
+  }, { passive: false });
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -360,7 +364,7 @@ function detectFaceLandmarks(time) {
   const matrices = landmarks.facialTransformationMatrixes;
   if (matrices && matrices.length > 0) {
     const matrix = new THREE.Matrix4().fromArray(matrices[0].data);
-    avatar.applyMatrix(matrix, 40);
+    avatar.applyMatrix(matrix);
   }
   const blendshapes = landmarks.faceBlendshapes;
   if (blendshapes && blendshapes.length > 0) {
@@ -480,13 +484,43 @@ if (startButton) {
   });
 }
 
+function updateScaleUI() {
+  if (scaleSlider) scaleSlider.value = avatarScale;
+  if (scaleValue) scaleValue.textContent = avatarScale.toFixed(1);
+}
+
+if (scaleSlider) {
+  scaleSlider.addEventListener("input", (e) => {
+    if (viewLocked) return;
+    avatarScale = parseFloat(e.target.value);
+    if (scaleValue) scaleValue.textContent = avatarScale.toFixed(1);
+  });
+}
+
+if (scaleUpBtn) {
+  scaleUpBtn.addEventListener("click", () => {
+    if (viewLocked) return;
+    avatarScale = Math.min(40, avatarScale + 1);
+    updateScaleUI();
+  });
+}
+
+if (scaleDownBtn) {
+  scaleDownBtn.addEventListener("click", () => {
+    if (viewLocked) return;
+    avatarScale = Math.max(1, avatarScale - 1);
+    updateScaleUI();
+  });
+}
+
 if (lockViewButton) {
   lockViewButton.addEventListener("click", () => {
-    if (controls) {
-      controls.enabled = !controls.enabled;
-      lockViewButton.textContent = controls.enabled ? "Lock View" : "Unlock View";
-      lockViewButton.style.background = controls.enabled ? "#111" : "#5a1a1a"; // Red when locked
-    }
+    viewLocked = !viewLocked;
+    lockViewButton.textContent = viewLocked ? "Unlock" : "Lock";
+    lockViewButton.classList.toggle("locked", viewLocked);
+    if (scaleSlider) scaleSlider.disabled = viewLocked;
+    if (scaleUpBtn) scaleUpBtn.disabled = viewLocked;
+    if (scaleDownBtn) scaleDownBtn.disabled = viewLocked;
   });
 }
 

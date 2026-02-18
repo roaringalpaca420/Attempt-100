@@ -16,11 +16,18 @@
   <body>
     <div class="top-bar">
       <button id="startButton" type="button">Start Camera</button>
-      <button id="lockViewButton" type="button">Lock View</button>
       <select id="modelSelect">
-        <option value="./Avocadotar%208%20.glb" selected>Avocadotar 8</option>
+        <option value="./Avocadotar%2000%20.glb" selected>Avocadotar 00</option>
         <option value="./raccoon_head .glb">Raccoon Backup</option>
       </select>
+      <div class="scale-control">
+        <label for="scaleSlider">Size</label>
+        <button id="scaleDown" type="button">-</button>
+        <input type="range" id="scaleSlider" min="1" max="40" value="5" step="0.5" />
+        <button id="scaleUp" type="button">+</button>
+        <span id="scaleValue">5</span>
+      </div>
+      <button id="lockViewButton" type="button">Lock</button>
       <button id="logsToggleButton" type="button">Show Logs</button>
     </div>
 

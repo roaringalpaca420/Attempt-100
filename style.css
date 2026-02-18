@@ -14,7 +14,52 @@ canvas {
   position: fixed;
   inset: 0;
   z-index: 0;
-  pointer-events: none;
+}
+
+.scale-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #111;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.scale-control label {
+  font-size: 12px;
+  color: #aaa;
+  margin-right: 2px;
+}
+
+.scale-control input[type="range"] {
+  width: 100px;
+  accent-color: #4a9eff;
+  cursor: pointer;
+}
+
+.scale-control input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scale-control span {
+  font-size: 12px;
+  color: #ccc;
+  min-width: 24px;
+  text-align: center;
+}
+
+.scale-control button {
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: bold;
+  min-width: 28px;
+}
+
+button.locked {
+  background: #5a1a1a;
+  border-color: #822;
 }
 
 video {
