@@ -211,7 +211,7 @@ class Avatar {
   }
 
   updateBlendshapes(blendshapesMap) {
-    const lerpAmount = 0.8; // Faster response (less smoothing) to feel snappy
+    const lerpAmount = 0.95; // Very snappy - minimal smoothing
 
     for (const mesh of this.morphTargetMeshes) {
       for (const [name, targetValue] of blendshapesMap) {
@@ -326,15 +326,15 @@ function retarget(blendshapes) {
     let value = categories[i].score;
     const name = categories[i].categoryName;
 
-    // Apply boosts
+    // Apply boosts - more aggressive across the board
     if (name.includes("brow")) {
-      value *= 1.5; // Boost brows
+      value *= 2.0; // Stronger brows
     }
     if (name.includes("eyeBlink")) {
-      value *= 1.5; // Boost blinks
+      value *= 2.0; // Stronger blinks
     }
     if (name.includes("mouth") || name === "jawOpen") {
-      value *= 5.0; // SUPER Aggressive boost for mouth
+      value *= 8.0; // Very aggressive mouth
     }
 
     // Clamp
