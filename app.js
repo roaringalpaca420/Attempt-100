@@ -15,6 +15,10 @@ const scaleSlider = document.getElementById("scaleSlider");
 const scaleValue = document.getElementById("scaleValue");
 const scaleUpBtn = document.getElementById("scaleUp");
 const scaleDownBtn = document.getElementById("scaleDown");
+const heightSlider = document.getElementById("heightSlider");
+const heightValue = document.getElementById("heightValue");
+const heightUpBtn = document.getElementById("heightUp");
+const heightDownBtn = document.getElementById("heightDown");
 
 let faceLandmarker = null;
 let avatar = null;
@@ -30,6 +34,7 @@ let FaceLandmarker = null;
 let libsLoaded = false;
 let frameCount = 0;
 let avatarScale = 1;
+let avatarHeightOffset = 0;
 let viewLocked = false;
 
 function log(message, ...details) {
@@ -211,7 +216,7 @@ class Avatar {
   }
 
   updateBlendshapes(blendshapesMap) {
-    const lerpAmount = 0.95; // Very snappy - minimal smoothing
+    const lerpAmount = 1.0; // Instant - no smoothing, mouth responds immediately
 
     for (const mesh of this.morphTargetMeshes) {
       for (const [name, targetValue] of blendshapesMap) {
@@ -232,10 +237,9 @@ class Avatar {
       return;
     }
     matrix.scale(new THREE.Vector3(avatarScale, avatarScale, avatarScale));
-    
-    // Optional: Move it down slightly if it's too high
-    // matrix.setPosition(matrix.position.x, matrix.position.y - 1, matrix.position.z);
-
+    const pos = new THREE.Vector3().setFromMatrixPosition(matrix);
+    pos.y += avatarHeightOffset;
+    matrix.setPosition(pos);
     this.gltf.scene.matrixAutoUpdate = false;
     this.gltf.scene.matrix.copy(matrix);
   }
@@ -334,7 +338,7 @@ function retarget(blendshapes) {
       value *= 2.0; // Stronger blinks
     }
     if (name.includes("mouth") || name === "jawOpen") {
-      value *= 8.0; // Very aggressive mouth
+      value *= 10.0; // Max aggressive - pick up subtle mouth movements
     }
 
     // Clamp
@@ -513,6 +517,35 @@ if (scaleDownBtn) {
   });
 }
 
+function updateHeightUI() {
+  if (heightSlider) heightSlider.value = avatarHeightOffset;
+  if (heightValue) heightValue.textContent = avatarHeightOffset.toFixed(1);
+}
+
+if (heightSlider) {
+  heightSlider.addEventListener("input", (e) => {
+    if (viewLocked) return;
+    avatarHeightOffset = parseFloat(e.target.value);
+    updateHeightUI();
+  });
+}
+
+if (heightUpBtn) {
+  heightUpBtn.addEventListener("click", () => {
+    if (viewLocked) return;
+    avatarHeightOffset = Math.min(2, avatarHeightOffset + 0.2);
+    updateHeightUI();
+  });
+}
+
+if (heightDownBtn) {
+  heightDownBtn.addEventListener("click", () => {
+    if (viewLocked) return;
+    avatarHeightOffset = Math.max(-2, avatarHeightOffset - 0.2);
+    updateHeightUI();
+  });
+}
+
 if (lockViewButton) {
   lockViewButton.addEventListener("click", () => {
     viewLocked = !viewLocked;
@@ -521,6 +554,9 @@ if (lockViewButton) {
     if (scaleSlider) scaleSlider.disabled = viewLocked;
     if (scaleUpBtn) scaleUpBtn.disabled = viewLocked;
     if (scaleDownBtn) scaleDownBtn.disabled = viewLocked;
+    if (heightSlider) heightSlider.disabled = viewLocked;
+    if (heightUpBtn) heightUpBtn.disabled = viewLocked;
+    if (heightDownBtn) heightDownBtn.disabled = viewLocked;
   });
 }
 
