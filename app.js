@@ -29,7 +29,7 @@ let FilesetResolver = null;
 let FaceLandmarker = null;
 let libsLoaded = false;
 let frameCount = 0;
-let avatarScale = 5;
+let avatarScale = 1;
 let viewLocked = false;
 
 function log(message, ...details) {
@@ -267,8 +267,8 @@ function buildScene() {
   renderer.domElement.addEventListener("wheel", (e) => {
     if (viewLocked) return;
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.5 : 0.5;
-    avatarScale = Math.max(1, Math.min(40, avatarScale + delta));
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    avatarScale = Math.max(0.1, Math.min(20, avatarScale + delta));
     if (scaleSlider) scaleSlider.value = avatarScale;
     if (scaleValue) scaleValue.textContent = avatarScale.toFixed(1);
   }, { passive: false });
@@ -500,7 +500,7 @@ if (scaleSlider) {
 if (scaleUpBtn) {
   scaleUpBtn.addEventListener("click", () => {
     if (viewLocked) return;
-    avatarScale = Math.min(40, avatarScale + 1);
+    avatarScale = Math.min(20, avatarScale + 0.5);
     updateScaleUI();
   });
 }
@@ -508,7 +508,7 @@ if (scaleUpBtn) {
 if (scaleDownBtn) {
   scaleDownBtn.addEventListener("click", () => {
     if (viewLocked) return;
-    avatarScale = Math.max(1, avatarScale - 1);
+    avatarScale = Math.max(0.1, avatarScale - 0.5);
     updateScaleUI();
   });
 }
