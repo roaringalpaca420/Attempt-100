@@ -195,6 +195,12 @@ class Avatar {
                 this.morphTargetMeshes.push(object);
               }
             });
+            // Default pose so model is visible before first face frame (camera at 0,0,0 looks down -Z)
+            gltf.scene.matrixAutoUpdate = false;
+            gltf.scene.position.set(0, 0, -2);
+            gltf.scene.quaternion.identity();
+            gltf.scene.scale.setScalar(avatarScale);
+            gltf.scene.updateMatrix();
             log("Model loaded successfully", { morphMeshCount: this.morphTargetMeshes.length });
             resolve();
           } catch (parseError) {
@@ -267,6 +273,7 @@ function buildScene() {
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.setClearColor(0x000000, 1);
   document.body.appendChild(renderer.domElement);
 
   renderer.domElement.addEventListener("wheel", (e) => {
@@ -387,7 +394,7 @@ function onVideoFrame(time) {
 }
 
 async function startCamera() {
-  setStatus("Requesting webcam access...");
+  setStatus("Requesting webcam access… Click Allow when the browser asks.");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     const msg = "Camera not supported. Use HTTPS or localhost.";
     setStatus(msg);
@@ -463,35 +470,40 @@ async function switchAvatar(url) {
   }
   setStatus(`Loading model: ${url}...`);
   avatar = new Avatar(url, scene);
-  try {
-    await avatar.loadModel();
-    setStatus("Model switched successfully.");
-  } catch (error) {
-    setStatus(`Failed to switch model: ${getErrorMessage(error)}`);
-    // Restore default if switch fails? Or just leave it broken. 
-    // For now, leave it and let user try another.
-  }
+  await avatar.loadModel();
+  setStatus("Model switched successfully.");
 }
 
 async function run() {
   try {
+    if (!window.isSecureContext) {
+      setStatus("Camera requires HTTPS or localhost. Open this page via http://localhost (e.g. run: node server.js).");
+      log("Secure context required for camera");
+      startButton.disabled = false;
+      return;
+    }
     await loadLibraries();
     buildScene();
-    
-    // Initial model load
     const selectedUrl = modelSelect.value;
     await switchAvatar(selectedUrl);
-    
+    if (!avatar || !avatar.gltf) {
+      setStatus("Model failed to load. Try another model or check the file is in the github folder.");
+      startButton.disabled = false;
+      return;
+    }
     await loadFaceLandmarker();
+    setStatus("Requesting camera… If the browser asks, click Allow.");
     await startCamera();
     setStatus("Tracking active.");
   } catch (error) {
-    setStatus("Startup failed. Open logs.");
-    log("Startup error", {
-      message: error?.message ?? String(error)
-    });
-    await copyLogsToClipboard();
+    const msg = getErrorMessage(error);
+    setStatus("Startup failed: " + msg);
+    log("Startup error", { message: error?.message ?? String(error) });
     startButton.disabled = false;
+    if (logsPanel && logsPanel.classList.contains("hidden")) {
+      logsPanel.classList.remove("hidden");
+      if (logsToggleButton) logsToggleButton.textContent = "Hide Logs";
+    }
   }
 }
 

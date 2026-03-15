@@ -15,7 +15,11 @@ const MIMES = {
 
 const server = http.createServer((req, res) => {
   let file = req.url === "/" ? "/index.html" : req.url;
-  file = path.join(__dirname, file.replace(/\?.*$/, ""));
+  file = file.replace(/\?.*$/, "");
+  try {
+    file = decodeURIComponent(file);
+  } catch (_) {}
+  file = path.join(__dirname, file);
   const ext = path.extname(file);
   const mime = MIMES[ext] || "application/octet-stream";
   fs.readFile(file, (err, data) => {
