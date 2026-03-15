@@ -1,4 +1,4 @@
-const PRIMARY_MODEL_URL = "./Avocadotar%20002%20.glb";
+const PRIMARY_MODEL_URL = "./3D%20ROARINGAPACA.glb";
 const FALLBACK_MODEL_URL = "./raccoon_head .glb";
 
 const statusEl = document.getElementById("status");
@@ -19,6 +19,7 @@ const heightSlider = document.getElementById("heightSlider");
 const heightValue = document.getElementById("heightValue");
 const heightUpBtn = document.getElementById("heightUp");
 const heightDownBtn = document.getElementById("heightDown");
+const cameraPreviewBtn = document.getElementById("cameraPreviewBtn");
 
 let faceLandmarker = null;
 let avatar = null;
@@ -387,22 +388,54 @@ function onVideoFrame(time) {
 
 async function startCamera() {
   setStatus("Requesting webcam access...");
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      facingMode: "user",
-      width: 1280,
-      height: 720
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const msg = "Camera not supported. Use HTTPS or localhost.";
+    setStatus(msg);
+    log("Camera error", msg);
+    throw new Error(msg);
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+  } catch (err) {
+    const name = err?.name || "Error";
+    let msg = "Camera failed: ";
+    if (name === "NotAllowedError" || err?.message?.includes("Permission")) {
+      msg += "Permission denied. Allow camera in browser settings.";
+    } else if (name === "NotFoundError") {
+      msg += "No camera found.";
+    } else if (name === "NotReadableError") {
+      msg += "Camera in use by another app.";
+    } else {
+      msg += err?.message || name;
     }
-  });
+    setStatus(msg);
+    log("Camera error", { name, message: err?.message });
+    throw new Error(msg);
+  }
+  const track = stream.getVideoTracks()[0];
+  const label = track ? track.label : "camera";
+  log("Camera active", { label, settings: track?.getSettings?.() });
   video.srcObject = stream;
-  await video.play();
+  try {
+    await video.play();
+  } catch (playErr) {
+    log("Video play error", playErr);
+    throw new Error("Camera stream could not play: " + (playErr?.message || "unknown"));
+  }
   if (typeof video.requestVideoFrameCallback === "function") {
     video.requestVideoFrameCallback(onVideoFrame);
   } else {
     requestAnimationFrame(() => onVideoFrame(performance.now()));
   }
-  setStatus("Webcam started.");
+  setStatus("Webcam started. Tracking active.");
 }
 
 async function loadFaceLandmarker() {
@@ -543,6 +576,13 @@ if (heightDownBtn) {
     if (viewLocked) return;
     avatarHeightOffset = Math.max(-2, avatarHeightOffset - 0.2);
     updateHeightUI();
+  });
+}
+
+if (cameraPreviewBtn && video) {
+  cameraPreviewBtn.addEventListener("click", () => {
+    video.classList.toggle("preview-visible");
+    cameraPreviewBtn.textContent = video.classList.contains("preview-visible") ? "Hide preview" : "Camera preview";
   });
 }
 
